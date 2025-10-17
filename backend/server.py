@@ -249,6 +249,41 @@ class TaskCreate(BaseModel):
     assigned_to: str
     assigned_to_name: str
 
+
+# Client Experience Models
+class Solution(BaseModel):
+    text: str
+    timestamp: str
+    user: str
+
+class ClientExperience(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    customer_id: Optional[str] = ""
+    customer_name: str
+    marke: str
+    modell: str
+    datum: str
+    zeit: str
+    kundenreklamation: str
+    datei_upload: Optional[str] = ""
+    loesungen: List[dict] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_by: str
+
+class ClientExperienceCreate(BaseModel):
+    customer_id: Optional[str] = ""
+    customer_name: str
+    marke: str
+    modell: str
+    datum: str
+    zeit: str
+    kundenreklamation: str
+    datei_upload: Optional[str] = ""
+
+class SolutionCreate(BaseModel):
+    text: str
+
 # Routes
 @api_router.get("/")
 async def root():
