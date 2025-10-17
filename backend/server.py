@@ -776,6 +776,10 @@ async def delete_client_experience(ce_id: str, current_user: dict = Depends(get_
 # Include the router in the main app
 app.include_router(api_router)
 
+
+# Mount uploads directory for static files
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
