@@ -353,6 +353,54 @@ async def delete_customer(customer_id: str, current_user: dict = Depends(get_cur
     await db.vehicles.delete_many({"customer_id": customer_id})
     return {"message": "Customer deleted"}
 
+
+# Customer Remarks routes
+@api_router.post("/customers/{customer_id}/remarks")
+async def add_remark(customer_id: str, remark_data: RemarkCreate, current_user: dict = Depends(get_current_user)):
+    customer = await db.customers.find_one({"id": customer_id})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    new_remark = {
+        "text": remark_data.text,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "user": current_user["name"]
+    }
+    
+    await db.customers.update_one(
+        {"id": customer_id},
+        {"$push": {"bemerkungen": new_remark}}
+    )
+    
+    return {"message": "Remark added", "remark": new_remark}
+
+# Customer Correspondence routes
+@api_router.post("/customers/{customer_id}/correspondence")
+async def add_correspondence(customer_id: str, correspondence_data: CorrespondenceCreate, current_user: dict = Depends(get_current_user)):
+    customer = await db.customers.find_one({"id": customer_id})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    new_correspondence = {
+        "bemerkung": correspondence_data.bemerkung,
+        "datum": correspondence_data.datum,
+        "zeit": correspondence_data.zeit,
+        "textfeld": correspondence_data.textfeld,
+        "upload1": correspondence_data.upload1,
+        "upload2": correspondence_data.upload2,
+        "upload3": correspondence_data.upload3,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "user": current_user["name"]
+    }
+    
+    await db.customers.update_one(
+        {"id": customer_id},
+        {"$push": {"korrespondenz": new_correspondence}}
+    )
+    
+    return {"message": "Correspondence added", "correspondence": new_correspondence}
+
+
 # Vehicle routes
 @api_router.post("/vehicles", response_model=Vehicle)
 async def create_vehicle(vehicle_data: VehicleCreate, current_user: dict = Depends(get_current_user)):
