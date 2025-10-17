@@ -813,24 +813,37 @@ async def get_client_experience(ce_id: str, current_user: dict = Depends(get_cur
         experience["created_at"] = datetime.fromisoformat(experience["created_at"])
     return experience
 
-@api_router.post("/client-experience/{ce_id}/solution")
-async def add_solution(ce_id: str, solution_data: SolutionCreate, current_user: dict = Depends(get_current_user)):
+@api_router.post("/client-experience/{ce_id}/action")
+async def add_action(ce_id: str, action_data: ActionCreate, current_user: dict = Depends(get_current_user)):
     experience = await db.client_experiences.find_one({"id": ce_id})
     if not experience:
         raise HTTPException(status_code=404, detail="Client Experience not found")
     
-    new_solution = {
-        "text": solution_data.text,
+    new_action = {
+        "text": action_data.text,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "user": current_user["name"]
     }
     
     await db.client_experiences.update_one(
         {"id": ce_id},
-        {"$push": {"loesungen": new_solution}}
+        {"$push": {"aktionen": new_action}}
     )
     
-    return {"message": "Solution added", "solution": new_solution}
+    return {"message": "Action added", "action": new_action}
+
+@api_router.put("/client-experience/{ce_id}/status")
+async def update_ce_status(ce_id: str, status: str, current_user: dict = Depends(get_current_user)):
+    experience = await db.client_experiences.find_one({"id": ce_id})
+    if not experience:
+        raise HTTPException(status_code=404, detail="Client Experience not found")
+    
+    await db.client_experiences.update_one(
+        {"id": ce_id},
+        {"$set": {"status": status}}
+    )
+    
+    return {"message": "Status updated"}
 
 @api_router.delete("/client-experience/{ce_id}")
 async def delete_client_experience(ce_id: str, current_user: dict = Depends(get_current_user)):
