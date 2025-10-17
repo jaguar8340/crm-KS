@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Plus, CheckCircle, Clock } from "lucide-react";
 
@@ -139,8 +141,19 @@ export default function Tasks({ user, onLogout }) {
     }
   };
 
-  const myTasks = tasks.filter((task) => task.assigned_to === user.id);
-  const allTasks = tasks;
+  // Sort tasks by date, newest first
+  const sortTasksByDate = (taskList) => {
+    return [...taskList].sort((a, b) => {
+      const dateA = new Date(`${a.datum_kontakt}T${a.zeitpunkt_kontakt}`);
+      const dateB = new Date(`${b.datum_kontakt}T${b.zeitpunkt_kontakt}`);
+      return dateB - dateA;
+    });
+  };
+
+  const myOpenTasks = sortTasksByDate(tasks.filter((task) => task.assigned_to === user.id && task.status === "offen"));
+  const myClosedTasks = sortTasksByDate(tasks.filter((task) => task.assigned_to === user.id && task.status === "erledigt"));
+  const allOpenTasks = sortTasksByDate(tasks.filter((task) => task.status === "offen"));
+  const allClosedTasks = sortTasksByDate(tasks.filter((task) => task.status === "erledigt"));
 
   return (
     <Layout user={user} onLogout={onLogout}>
@@ -249,90 +262,162 @@ export default function Tasks({ user, onLogout }) {
           </Dialog>
         </div>
 
-        <div className="space-y-8">
-          {/* My Tasks Section */}
-          <div>
-            <h2 className="text-2xl font-bold mb-4" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Meine Aufgaben</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {myTasks.map((task) => (
-                <Card key={task.id} className="hover:shadow-lg transition-shadow duration-300" data-testid={`my-task-card-${task.id}`}>
-                  <CardHeader className={`text-white ${
-                    task.status === "offen" 
-                      ? "bg-gradient-to-r from-orange-500 to-red-600" 
-                      : "bg-gradient-to-r from-green-500 to-teal-600"
-                  }`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {task.status === "offen" ? <Clock className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
-                        <CardTitle className="text-lg">{task.customer_name}</CardTitle>
-                      </div>
-                      <span className="text-xs bg-white/20 px-2 py-1 rounded">
-                        {task.status === "offen" ? "Offen" : "Erledigt"}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-4">
-                    <div className="space-y-2 text-sm">
-                      <div><strong>Datum:</strong> {task.datum_kontakt} um {task.zeitpunkt_kontakt}</div>
-                      <div><strong>Telefon:</strong> {task.telefon_nummer}</div>
-                      <div><strong>Bemerkungen:</strong> {task.bemerkungen}</div>
-                    </div>
-                    {task.status === "offen" && (
-                      <Button
-                        onClick={() => handleStatusChange(task.id, "erledigt")}
-                        className="w-full mt-4 bg-green-600 hover:bg-green-700"
-                        data-testid={`complete-task-${task.id}`}
-                      >
-                        Als erledigt markieren
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            {myTasks.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <p>Keine Aufgaben zugewiesen</p>
-              </div>
-            )}
-          </div>
+        {/* Meine Aufgaben */}
+        <Card>
+          <CardHeader className="bg-gradient-to-r from-orange-500 to-red-600 text-white">
+            <CardTitle>Meine Aufgaben</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <Tabs defaultValue="offen" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="offen">Offene Aufgaben ({myOpenTasks.length})</TabsTrigger>
+                <TabsTrigger value="erledigt">Erledigte Aufgaben ({myClosedTasks.length})</TabsTrigger>
+              </TabsList>
+              <TabsContent value="offen">
+                {myOpenTasks.length === 0 ? (
+                  <p className="text-center py-8 text-gray-500">Keine offenen Aufgaben</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Datum</TableHead>
+                        <TableHead>Zeit</TableHead>
+                        <TableHead>Kunde</TableHead>
+                        <TableHead>Bemerkungen</TableHead>
+                        <TableHead>Telefon</TableHead>
+                        <TableHead>Aktion</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {myOpenTasks.map((task) => (
+                        <TableRow key={task.id}>
+                          <TableCell>{task.datum_kontakt}</TableCell>
+                          <TableCell>{task.zeitpunkt_kontakt}</TableCell>
+                          <TableCell>{task.customer_name}</TableCell>
+                          <TableCell className="max-w-xs truncate">{task.bemerkungen}</TableCell>
+                          <TableCell>{task.telefon_nummer}</TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              onClick={() => handleStatusChange(task.id, "erledigt")}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              Erledigt
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </TabsContent>
+              <TabsContent value="erledigt">
+                {myClosedTasks.length === 0 ? (
+                  <p className="text-center py-8 text-gray-500">Keine erledigten Aufgaben</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Datum</TableHead>
+                        <TableHead>Zeit</TableHead>
+                        <TableHead>Kunde</TableHead>
+                        <TableHead>Bemerkungen</TableHead>
+                        <TableHead>Telefon</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {myClosedTasks.map((task) => (
+                        <TableRow key={task.id}>
+                          <TableCell>{task.datum_kontakt}</TableCell>
+                          <TableCell>{task.zeitpunkt_kontakt}</TableCell>
+                          <TableCell>{task.customer_name}</TableCell>
+                          <TableCell className="max-w-xs truncate">{task.bemerkungen}</TableCell>
+                          <TableCell>{task.telefon_nummer}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
 
-          {/* All Tasks Section (visible to admin or for overview) */}
-          {user.role === "admin" && (
-            <div>
-              <h2 className="text-2xl font-bold mb-4" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Alle Aufgaben</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {allTasks.map((task) => (
-                  <Card key={task.id} className="hover:shadow-lg transition-shadow duration-300" data-testid={`all-task-card-${task.id}`}>
-                    <CardHeader className={`text-white ${
-                      task.status === "offen" 
-                        ? "bg-gradient-to-r from-orange-500 to-red-600" 
-                        : "bg-gradient-to-r from-green-500 to-teal-600"
-                    }`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {task.status === "offen" ? <Clock className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
-                          <CardTitle className="text-lg">{task.customer_name}</CardTitle>
-                        </div>
-                        <span className="text-xs bg-white/20 px-2 py-1 rounded">
-                          {task.status === "offen" ? "Offen" : "Erledigt"}
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                      <div className="space-y-2 text-sm">
-                        <div><strong>Zugewiesen an:</strong> {task.assigned_to_name}</div>
-                        <div><strong>Datum:</strong> {task.datum_kontakt} um {task.zeitpunkt_kontakt}</div>
-                        <div><strong>Telefon:</strong> {task.telefon_nummer}</div>
-                        <div><strong>Bemerkungen:</strong> {task.bemerkungen}</div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Alle Aufgaben (nur für Admins oder zur Übersicht) */}
+        <Card>
+          <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
+            <CardTitle>Alle Aufgaben</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <Tabs defaultValue="offen" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="offen">Offene Aufgaben ({allOpenTasks.length})</TabsTrigger>
+                <TabsTrigger value="erledigt">Erledigte Aufgaben ({allClosedTasks.length})</TabsTrigger>
+              </TabsList>
+              <TabsContent value="offen">
+                {allOpenTasks.length === 0 ? (
+                  <p className="text-center py-8 text-gray-500">Keine offenen Aufgaben</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Datum</TableHead>
+                        <TableHead>Zeit</TableHead>
+                        <TableHead>Kunde</TableHead>
+                        <TableHead>Erstellt durch</TableHead>
+                        <TableHead>Zugewiesen an</TableHead>
+                        <TableHead>Bemerkungen</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {allOpenTasks.map((task) => (
+                        <TableRow key={task.id}>
+                          <TableCell>{task.datum_kontakt}</TableCell>
+                          <TableCell>{task.zeitpunkt_kontakt}</TableCell>
+                          <TableCell>{task.customer_name}</TableCell>
+                          <TableCell>{task.created_by || "-"}</TableCell>
+                          <TableCell>{task.assigned_to_name}</TableCell>
+                          <TableCell className="max-w-xs truncate">{task.bemerkungen}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </TabsContent>
+              <TabsContent value="erledigt">
+                {allClosedTasks.length === 0 ? (
+                  <p className="text-center py-8 text-gray-500">Keine erledigten Aufgaben</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Datum</TableHead>
+                        <TableHead>Zeit</TableHead>
+                        <TableHead>Kunde</TableHead>
+                        <TableHead>Erstellt durch</TableHead>
+                        <TableHead>Zugewiesen an</TableHead>
+                        <TableHead>Bemerkungen</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {allClosedTasks.map((task) => (
+                        <TableRow key={task.id}>
+                          <TableCell>{task.datum_kontakt}</TableCell>
+                          <TableCell>{task.zeitpunkt_kontakt}</TableCell>
+                          <TableCell>{task.customer_name}</TableCell>
+                          <TableCell>{task.created_by || "-"}</TableCell>
+                          <TableCell>{task.assigned_to_name}</TableCell>
+                          <TableCell className="max-w-xs truncate">{task.bemerkungen}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
