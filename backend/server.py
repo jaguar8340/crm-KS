@@ -113,6 +113,7 @@ class Customer(BaseModel):
     email_p: Optional[str] = ""
     email_g: Optional[str] = ""
     geburtsdatum: Optional[str] = ""
+    bemerkungen: Optional[str] = ""
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CustomerCreate(BaseModel):
@@ -129,6 +130,7 @@ class CustomerCreate(BaseModel):
     email_p: Optional[str] = ""
     email_g: Optional[str] = ""
     geburtsdatum: Optional[str] = ""
+    bemerkungen: Optional[str] = ""
 
 class Vehicle(BaseModel):
     model_config = ConfigDict(extra="ignore")
