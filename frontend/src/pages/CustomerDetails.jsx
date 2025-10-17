@@ -462,7 +462,7 @@ export default function CustomerDetails({ user, onLogout }) {
                 <p className="text-gray-500 text-center py-4">Keine Korrespondenz vorhanden</p>
               ) : (
                 <Accordion type="single" collapsible className="w-full">
-                  {customer.korrespondenz.map((korr, index) => (
+                  {[...customer.korrespondenz].sort((a, b) => new Date(`${b.datum}T${b.zeit}`) - new Date(`${a.datum}T${a.zeit}`)).map((korr, index) => (
                     <AccordionItem key={index} value={`korr-${index}`}>
                       <AccordionTrigger className="hover:no-underline">
                         <div className="flex items-center justify-between w-full pr-4">
