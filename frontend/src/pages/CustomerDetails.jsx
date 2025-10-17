@@ -190,12 +190,50 @@ export default function CustomerDetails({ user, onLogout }) {
     }
   };
 
+  const handleFileUpload = async (file, fieldName) => {
+    const token = localStorage.getItem("token");
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await axios.post(`${API}/upload`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response.data.filename;
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast.error(`Fehler beim Hochladen von ${fieldName}`);
+      return null;
+    }
+  };
+
   const handleAddCorrespondence = async (e) => {
     e.preventDefault();
+    setUploading(true);
     const token = localStorage.getItem("token");
 
     try {
-      await axios.post(`${API}/customers/${id}/correspondence`, correspondenceFormData, {
+      // Upload files first
+      const uploadPromises = [];
+      const uploadData = { ...correspondenceFormData };
+      
+      if (uploadedFiles.upload1) {
+        const filename = await handleFileUpload(uploadedFiles.upload1, "Upload 1");
+        if (filename) uploadData.upload1 = filename;
+      }
+      if (uploadedFiles.upload2) {
+        const filename = await handleFileUpload(uploadedFiles.upload2, "Upload 2");
+        if (filename) uploadData.upload2 = filename;
+      }
+      if (uploadedFiles.upload3) {
+        const filename = await handleFileUpload(uploadedFiles.upload3, "Upload 3");
+        if (filename) uploadData.upload3 = filename;
+      }
+
+      await axios.post(`${API}/customers/${id}/correspondence`, uploadData, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Korrespondenz hinzugefügt!");
@@ -209,10 +247,17 @@ export default function CustomerDetails({ user, onLogout }) {
         upload2: "",
         upload3: "",
       });
+      setUploadedFiles({
+        upload1: null,
+        upload2: null,
+        upload3: null,
+      });
       fetchCustomer();
     } catch (error) {
       console.error("Error adding correspondence:", error);
       toast.error("Fehler beim Hinzufügen der Korrespondenz");
+    } finally {
+      setUploading(false);
     }
   };
 
