@@ -49,6 +49,12 @@ export default function CustomerDetails({ user, onLogout }) {
     upload2: "",
     upload3: "",
   });
+  const [uploadedFiles, setUploadedFiles] = useState({
+    upload1: null,
+    upload2: null,
+    upload3: null,
+  });
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchCustomer();
