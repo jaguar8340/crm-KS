@@ -8,6 +8,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Edit, Trash2 } from "lucide-react";
 
@@ -153,7 +154,7 @@ export default function CustomerDetails({ user, onLogout }) {
           </h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           <Card>
             <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white flex flex-row justify-between items-center">
               <CardTitle>Kundendaten</CardTitle>
@@ -162,18 +163,33 @@ export default function CustomerDetails({ user, onLogout }) {
               </Button>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="space-y-3">
-                <div><strong>Kunden-Nr:</strong> {customer.kunden_nr}</div>
-                <div><strong>Name:</strong> {customer.vorname} {customer.name}</div>
-                {customer.firma && <div><strong>Firma:</strong> {customer.firma}</div>}
-                <div><strong>Adresse:</strong> {customer.strasse}, {customer.plz} {customer.ort}</div>
-                {customer.telefon_p && <div><strong>Telefon P:</strong> {customer.telefon_p}</div>}
-                {customer.telefon_g && <div><strong>Telefon G:</strong> {customer.telefon_g}</div>}
-                {customer.natel && <div><strong>Natel:</strong> {customer.natel}</div>}
-                {customer.email_p && <div><strong>Email P:</strong> {customer.email_p}</div>}
-                {customer.email_g && <div><strong>Email G:</strong> {customer.email_g}</div>}
-                {customer.geburtsdatum && <div><strong>Geburtsdatum:</strong> {customer.geburtsdatum}</div>}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <div><strong>Kunden-Nr:</strong> {customer.kunden_nr}</div>
+                  <div><strong>Vorname:</strong> {customer.vorname}</div>
+                  <div><strong>Name:</strong> {customer.name}</div>
+                  {customer.firma && <div><strong>Firma:</strong> {customer.firma}</div>}
+                  {customer.geburtsdatum && <div><strong>Geburtsdatum:</strong> {customer.geburtsdatum}</div>}
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <strong>Adresse:</strong>
+                    <div>{customer.strasse}</div>
+                    <div>{customer.plz} {customer.ort}</div>
+                  </div>
+                  {customer.telefon_p && <div><strong>Telefon P:</strong> {customer.telefon_p}</div>}
+                  {customer.telefon_g && <div><strong>Telefon G:</strong> {customer.telefon_g}</div>}
+                  {customer.natel && <div><strong>Natel:</strong> {customer.natel}</div>}
+                  {customer.email_p && <div><strong>Email P:</strong> {customer.email_p}</div>}
+                  {customer.email_g && <div><strong>Email G:</strong> {customer.email_g}</div>}
+                </div>
               </div>
+              {customer.bemerkungen && (
+                <div className="mt-6 pt-6 border-t">
+                  <strong className="block mb-2">Bemerkungen:</strong>
+                  <p className="text-gray-700 whitespace-pre-wrap">{customer.bemerkungen}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -450,6 +466,15 @@ export default function CustomerDetails({ user, onLogout }) {
                       type="date"
                       value={editFormData.geburtsdatum}
                       onChange={(e) => setEditFormData({ ...editFormData, geburtsdatum: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Bemerkungen</Label>
+                    <Textarea
+                      value={editFormData.bemerkungen || ""}
+                      onChange={(e) => setEditFormData({ ...editFormData, bemerkungen: e.target.value })}
+                      rows={4}
+                      placeholder="Notizen oder Bemerkungen zum Kunden..."
                     />
                   </div>
                 </div>
