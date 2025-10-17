@@ -10,6 +10,7 @@ import Employees from "@/pages/Employees";
 import Tasks from "@/pages/Tasks";
 import Users from "@/pages/Users";
 import ClientExperience from "@/pages/ClientExperience";
+import Kaufvertraege from "@/pages/Kaufvertraege";
 import { Toaster } from "@/components/ui/sonner";
 
 function App() {
