@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Users, Car, Briefcase, CheckSquare, UserCog, LogOut, Menu, X, Star } from "lucide-react";
+import { LayoutDashboard, Users, Car, Briefcase, CheckSquare, UserCog, LogOut, Menu, X, Star, FileText } from "lucide-react";
 
 export default function Layout({ user, onLogout, children }) {
   const location = useLocation();
@@ -14,6 +14,7 @@ export default function Layout({ user, onLogout, children }) {
     { path: "/employees", label: "Mitarbeiter", icon: Briefcase },
     { path: "/tasks", label: "Aufgaben", icon: CheckSquare },
     { path: "/client-experience", label: "Client Experience", icon: Star },
+    { path: "/kaufvertraege", label: "Kaufverträge", icon: FileText },
   ];
 
   if (user.role === "admin") {
