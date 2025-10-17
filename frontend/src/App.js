@@ -75,6 +75,10 @@ function App() {
             element={user ? <Tasks user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
           />
           <Route
+            path="/client-experience"
+            element={user ? <ClientExperience user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+          />
+          <Route
             path="/users"
             element={user && user.role === "admin" ? <Users user={user} onLogout={handleLogout} /> : <Navigate to="/" />}
           />
