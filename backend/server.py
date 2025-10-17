@@ -701,6 +701,77 @@ async def delete_task(task_id: str, current_user: dict = Depends(get_current_use
         raise HTTPException(status_code=404, detail="Task not found")
     return {"message": "Task deleted"}
 
+
+# File Upload route
+@api_router.post("/upload")
+async def upload_file(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    try:
+        file_ext = Path(file.filename).suffix
+        unique_filename = f"{uuid.uuid4()}{file_ext}"
+        file_path = UPLOAD_DIR / unique_filename
+        
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        return {"filename": unique_filename, "path": f"/uploads/{unique_filename}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+# Client Experience routes
+@api_router.post("/client-experience", response_model=ClientExperience)
+async def create_client_experience(ce_data: ClientExperienceCreate, current_user: dict = Depends(get_current_user)):
+    ce_dict = ce_data.model_dump()
+    ce_dict["created_by"] = current_user["name"]
+    ce_obj = ClientExperience(**ce_dict)
+    doc = ce_obj.model_dump()
+    doc["created_at"] = doc["created_at"].isoformat()
+    await db.client_experiences.insert_one(doc)
+    return ce_obj
+
+@api_router.get("/client-experience", response_model=List[ClientExperience])
+async def get_client_experiences(current_user: dict = Depends(get_current_user)):
+    experiences = await db.client_experiences.find({}, {"_id": 0}).to_list(1000)
+    for exp in experiences:
+        if isinstance(exp["created_at"], str):
+            exp["created_at"] = datetime.fromisoformat(exp["created_at"])
+    return experiences
+
+@api_router.get("/client-experience/{ce_id}", response_model=ClientExperience)
+async def get_client_experience(ce_id: str, current_user: dict = Depends(get_current_user)):
+    experience = await db.client_experiences.find_one({"id": ce_id}, {"_id": 0})
+    if not experience:
+        raise HTTPException(status_code=404, detail="Client Experience not found")
+    if isinstance(experience["created_at"], str):
+        experience["created_at"] = datetime.fromisoformat(experience["created_at"])
+    return experience
+
+@api_router.post("/client-experience/{ce_id}/solution")
+async def add_solution(ce_id: str, solution_data: SolutionCreate, current_user: dict = Depends(get_current_user)):
+    experience = await db.client_experiences.find_one({"id": ce_id})
+    if not experience:
+        raise HTTPException(status_code=404, detail="Client Experience not found")
+    
+    new_solution = {
+        "text": solution_data.text,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "user": current_user["name"]
+    }
+    
+    await db.client_experiences.update_one(
+        {"id": ce_id},
+        {"$push": {"loesungen": new_solution}}
+    )
+    
+    return {"message": "Solution added", "solution": new_solution}
+
+@api_router.delete("/client-experience/{ce_id}")
+async def delete_client_experience(ce_id: str, current_user: dict = Depends(get_current_user)):
+    result = await db.client_experiences.delete_one({"id": ce_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Client Experience not found")
+    return {"message": "Client Experience deleted"}
+
+
 # Include the router in the main app
 app.include_router(api_router)
 
