@@ -80,6 +80,10 @@ function App() {
             element={user ? <ClientExperience user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
           />
           <Route
+            path="/kaufvertraege"
+            element={user ? <Kaufvertraege user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+          />
+          <Route
             path="/users"
             element={user && user.role === "admin" ? <Users user={user} onLogout={handleLogout} /> : <Navigate to="/" />}
           />
