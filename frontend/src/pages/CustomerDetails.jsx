@@ -572,34 +572,37 @@ export default function CustomerDetails({ user, onLogout }) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="upload1">Upload 1 (URL)</Label>
+                <Label htmlFor="upload1">Upload 1</Label>
                 <Input
                   id="upload1"
-                  value={correspondenceFormData.upload1}
-                  onChange={(e) => setCorrespondenceFormData({ ...correspondenceFormData, upload1: e.target.value })}
-                  placeholder="URL zum Upload 1"
+                  type="file"
+                  onChange={(e) => setUploadedFiles({ ...uploadedFiles, upload1: e.target.files[0] })}
+                  data-testid="correspondence-upload1"
                 />
+                {uploadedFiles.upload1 && <p className="text-xs text-gray-500">{uploadedFiles.upload1.name}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="upload2">Upload 2 (URL)</Label>
+                <Label htmlFor="upload2">Upload 2</Label>
                 <Input
                   id="upload2"
-                  value={correspondenceFormData.upload2}
-                  onChange={(e) => setCorrespondenceFormData({ ...correspondenceFormData, upload2: e.target.value })}
-                  placeholder="URL zum Upload 2"
+                  type="file"
+                  onChange={(e) => setUploadedFiles({ ...uploadedFiles, upload2: e.target.files[0] })}
+                  data-testid="correspondence-upload2"
                 />
+                {uploadedFiles.upload2 && <p className="text-xs text-gray-500">{uploadedFiles.upload2.name}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="upload3">Upload 3 (URL)</Label>
+                <Label htmlFor="upload3">Upload 3</Label>
                 <Input
                   id="upload3"
-                  value={correspondenceFormData.upload3}
-                  onChange={(e) => setCorrespondenceFormData({ ...correspondenceFormData, upload3: e.target.value })}
-                  placeholder="URL zum Upload 3"
+                  type="file"
+                  onChange={(e) => setUploadedFiles({ ...uploadedFiles, upload3: e.target.files[0] })}
+                  data-testid="correspondence-upload3"
                 />
+                {uploadedFiles.upload3 && <p className="text-xs text-gray-500">{uploadedFiles.upload3.name}</p>}
               </div>
-              <Button type="submit" className="w-full" data-testid="correspondence-submit-button">
-                Korrespondenz hinzufügen
+              <Button type="submit" className="w-full" disabled={uploading} data-testid="correspondence-submit-button">
+                {uploading ? "Hochladen..." : "Korrespondenz hinzufügen"}
               </Button>
             </form>
           </DialogContent>
