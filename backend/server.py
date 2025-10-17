@@ -373,6 +373,124 @@ async def delete_vehicle(vehicle_id: str, current_user: dict = Depends(get_curre
         raise HTTPException(status_code=404, detail="Vehicle not found")
     return {"message": "Vehicle deleted"}
 
+
+# CSV Upload routes
+@api_router.post("/customers/upload-csv")
+async def upload_customers_csv(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="File must be a CSV")
+    
+    try:
+        contents = await file.read()
+        csv_data = contents.decode('utf-8')
+        csv_reader = csv.DictReader(io.StringIO(csv_data))
+        
+        imported_count = 0
+        errors = []
+        
+        for row_num, row in enumerate(csv_reader, start=2):
+            try:
+                customer_data = {
+                    "kunden_nr": row.get("kunden_nr", ""),
+                    "vorname": row.get("vorname", ""),
+                    "name": row.get("name", ""),
+                    "firma": row.get("firma", ""),
+                    "strasse": row.get("strasse", ""),
+                    "plz": row.get("plz", ""),
+                    "ort": row.get("ort", ""),
+                    "telefon_p": row.get("telefon_p", ""),
+                    "telefon_g": row.get("telefon_g", ""),
+                    "natel": row.get("natel", ""),
+                    "email_p": row.get("email_p", ""),
+                    "email_g": row.get("email_g", ""),
+                    "geburtsdatum": row.get("geburtsdatum", ""),
+                    "bemerkungen": row.get("bemerkungen", ""),
+                }
+                
+                # Validate required fields
+                if not customer_data["kunden_nr"] or not customer_data["vorname"] or not customer_data["name"]:
+                    errors.append(f"Zeile {row_num}: Pflichtfelder fehlen (kunden_nr, vorname, name)")
+                    continue
+                
+                customer_obj = Customer(**customer_data)
+                doc = customer_obj.model_dump()
+                doc["created_at"] = doc["created_at"].isoformat()
+                await db.customers.insert_one(doc)
+                imported_count += 1
+            except Exception as e:
+                errors.append(f"Zeile {row_num}: {str(e)}")
+        
+        return {
+            "imported": imported_count,
+            "errors": errors,
+            "message": f"{imported_count} Kunden erfolgreich importiert"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Fehler beim Verarbeiten der CSV: {str(e)}")
+
+@api_router.post("/vehicles/upload-csv")
+async def upload_vehicles_csv(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="File must be a CSV")
+    
+    try:
+        contents = await file.read()
+        csv_data = contents.decode('utf-8')
+        csv_reader = csv.DictReader(io.StringIO(csv_data))
+        
+        imported_count = 0
+        errors = []
+        
+        for row_num, row in enumerate(csv_reader, start=2):
+            try:
+                # Find customer by kunden_nr
+                customer_nr = row.get("kunden_nr", "")
+                if not customer_nr:
+                    errors.append(f"Zeile {row_num}: kunden_nr fehlt")
+                    continue
+                
+                customer = await db.customers.find_one({"kunden_nr": customer_nr}, {"_id": 0})
+                if not customer:
+                    errors.append(f"Zeile {row_num}: Kunde mit Nr. {customer_nr} nicht gefunden")
+                    continue
+                
+                vehicle_data = {
+                    "customer_id": customer["id"],
+                    "marke": row.get("marke", ""),
+                    "modell": row.get("modell", ""),
+                    "chassis_nr": row.get("chassis_nr", ""),
+                    "stamm_nr": row.get("stamm_nr", ""),
+                    "typenschein_nr": row.get("typenschein_nr", ""),
+                    "farbe": row.get("farbe", ""),
+                    "inverkehrsetzung": row.get("inverkehrsetzung", ""),
+                    "km_stand": row.get("km_stand", ""),
+                    "vista_nr": row.get("vista_nr", ""),
+                    "verkaeufer": row.get("verkaeufer", ""),
+                    "kundenberater": row.get("kundenberater", ""),
+                }
+                
+                # Validate required fields
+                if not vehicle_data["marke"] or not vehicle_data["modell"] or not vehicle_data["chassis_nr"]:
+                    errors.append(f"Zeile {row_num}: Pflichtfelder fehlen (marke, modell, chassis_nr)")
+                    continue
+                
+                vehicle_obj = Vehicle(**vehicle_data)
+                doc = vehicle_obj.model_dump()
+                doc["created_at"] = doc["created_at"].isoformat()
+                await db.vehicles.insert_one(doc)
+                imported_count += 1
+            except Exception as e:
+                errors.append(f"Zeile {row_num}: {str(e)}")
+        
+        return {
+            "imported": imported_count,
+            "errors": errors,
+            "message": f"{imported_count} Fahrzeuge erfolgreich importiert"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Fehler beim Verarbeiten der CSV: {str(e)}")
+
+
 # Employee routes
 @api_router.post("/employees", response_model=Employee)
 async def create_employee(employee_data: EmployeeCreate, current_user: dict = Depends(get_current_user)):
