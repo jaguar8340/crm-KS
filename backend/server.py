@@ -853,6 +853,43 @@ async def delete_client_experience(ce_id: str, current_user: dict = Depends(get_
     return {"message": "Client Experience deleted"}
 
 
+# Kaufverträge routes
+@api_router.post("/kaufvertraege", response_model=Kaufvertrag)
+async def create_kaufvertrag(kv_data: KaufvertragCreate, current_user: dict = Depends(get_current_user)):
+    kv_dict = kv_data.model_dump()
+    kv_dict["created_by"] = current_user["name"]
+    kv_obj = Kaufvertrag(**kv_dict)
+    doc = kv_obj.model_dump()
+    doc["created_at"] = doc["created_at"].isoformat()
+    await db.kaufvertraege.insert_one(doc)
+    return kv_obj
+
+@api_router.get("/kaufvertraege", response_model=List[Kaufvertrag])
+async def get_kaufvertraege(current_user: dict = Depends(get_current_user)):
+    vertraege = await db.kaufvertraege.find({}, {"_id": 0}).to_list(1000)
+    for vertrag in vertraege:
+        if isinstance(vertrag["created_at"], str):
+            vertrag["created_at"] = datetime.fromisoformat(vertrag["created_at"])
+    return vertraege
+
+@api_router.get("/kaufvertraege/{kv_id}", response_model=Kaufvertrag)
+async def get_kaufvertrag(kv_id: str, current_user: dict = Depends(get_current_user)):
+    vertrag = await db.kaufvertraege.find_one({"id": kv_id}, {"_id": 0})
+    if not vertrag:
+        raise HTTPException(status_code=404, detail="Kaufvertrag not found")
+    if isinstance(vertrag["created_at"], str):
+        vertrag["created_at"] = datetime.fromisoformat(vertrag["created_at"])
+    return vertrag
+
+@api_router.delete("/kaufvertraege/{kv_id}")
+async def delete_kaufvertrag(kv_id: str, current_user: dict = Depends(get_current_user)):
+    result = await db.kaufvertraege.delete_one({"id": kv_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Kaufvertrag not found")
+    return {"message": "Kaufvertrag deleted"}
+
+
+
 # Include the router in the main app
 app.include_router(api_router)
 
