@@ -423,7 +423,7 @@ export default function CustomerDetails({ user, onLogout }) {
                 <p className="text-gray-500 text-center py-4">Keine Aufgaben vorhanden</p>
               ) : (
                 <Accordion type="single" collapsible className="w-full">
-                  {tasks.map((task, index) => (
+                  {[...tasks].sort((a, b) => new Date(`${b.datum_kontakt}T${b.zeitpunkt_kontakt}`) - new Date(`${a.datum_kontakt}T${a.zeitpunkt_kontakt}`)).map((task, index) => (
                     <AccordionItem key={task.id} value={`task-${index}`}>
                       <AccordionTrigger className="hover:no-underline">
                         <div className="flex items-center justify-between w-full pr-4">
