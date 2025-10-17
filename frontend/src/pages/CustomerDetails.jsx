@@ -479,9 +479,30 @@ export default function CustomerDetails({ user, onLogout }) {
                             <strong>Text:</strong>
                             <p className="mt-1 whitespace-pre-wrap">{korr.textfeld}</p>
                           </div>
-                          {korr.upload1 && <div><strong>Upload 1:</strong> {korr.upload1}</div>}
-                          {korr.upload2 && <div><strong>Upload 2:</strong> {korr.upload2}</div>}
-                          {korr.upload3 && <div><strong>Upload 3:</strong> {korr.upload3}</div>}
+                          {korr.upload1 && (
+                            <div>
+                              <strong>Upload 1:</strong>{" "}
+                              <a href={`${BACKEND_URL}/uploads/${korr.upload1}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                {korr.upload1}
+                              </a>
+                            </div>
+                          )}
+                          {korr.upload2 && (
+                            <div>
+                              <strong>Upload 2:</strong>{" "}
+                              <a href={`${BACKEND_URL}/uploads/${korr.upload2}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                {korr.upload2}
+                              </a>
+                            </div>
+                          )}
+                          {korr.upload3 && (
+                            <div>
+                              <strong>Upload 3:</strong>{" "}
+                              <a href={`${BACKEND_URL}/uploads/${korr.upload3}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                {korr.upload3}
+                              </a>
+                            </div>
+                          )}
                           <p className="text-xs text-gray-500 mt-2">
                             Erstellt: {formatDateTime(korr.timestamp)} - {korr.user}
                           </p>
