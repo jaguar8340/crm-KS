@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Search, Car as CarIcon, Upload, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -174,48 +175,60 @@ export default function Vehicles({ user, onLogout }) {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredVehicles.map((vehicle) => (
-            <Card key={vehicle.id} className="hover:shadow-lg transition-shadow duration-300" data-testid={`vehicle-card-${vehicle.id}`}>
-              <CardHeader className="bg-gradient-to-r from-green-500 to-teal-600 text-white">
-                <div className="flex items-center gap-2">
-                  <CarIcon className="w-6 h-6" />
-                  <div>
-                    <CardTitle className="text-lg">
-                      {vehicle.marke} {vehicle.modell}
-                    </CardTitle>
-                    <p className="text-sm opacity-90">Chassis: {vehicle.chassis_nr}</p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="space-y-2 text-sm">
-                  <div><strong>Kunde:</strong> {getCustomerName(vehicle.customer_id)}</div>
-                  {vehicle.stamm_nr && <div><strong>Stamm-Nr:</strong> {vehicle.stamm_nr}</div>}
-                  {vehicle.farbe && <div><strong>Farbe:</strong> {vehicle.farbe}</div>}
-                  {vehicle.km_stand && <div><strong>KM-Stand:</strong> {vehicle.km_stand}</div>}
-                  {vehicle.inverkehrsetzung && <div><strong>Inverkehrsetzung:</strong> {vehicle.inverkehrsetzung}</div>}
-                  {vehicle.verkaeufer && <div><strong>Verkäufer:</strong> {vehicle.verkaeufer}</div>}
-                  {vehicle.kundenberater && <div><strong>Kundenberater:</strong> {vehicle.kundenberater}</div>}
-                </div>
-                <Button
-                  onClick={() => navigate(`/customers/${vehicle.customer_id}`)}
-                  className="w-full mt-4"
-                  variant="outline"
-                  data-testid={`view-vehicle-customer-${vehicle.id}`}
-                >
-                  Kunde anzeigen
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Card>
+          <CardHeader className="bg-gradient-to-r from-green-500 to-teal-600 text-white">
+            <CardTitle>Fahrzeugliste ({filteredVehicles.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Marke</TableHead>
+                    <TableHead>Modell</TableHead>
+                    <TableHead>Chassis-Nr</TableHead>
+                    <TableHead>Farbe</TableHead>
+                    <TableHead>KM-Stand</TableHead>
+                    <TableHead>Verkäufer</TableHead>
+                    <TableHead>Kundenberater</TableHead>
+                    <TableHead>Kunde</TableHead>
+                    <TableHead className="text-right">Aktionen</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredVehicles.map((vehicle) => (
+                    <TableRow key={vehicle.id} data-testid={`vehicle-row-${vehicle.id}`}>
+                      <TableCell className="font-medium">{vehicle.marke}</TableCell>
+                      <TableCell>{vehicle.modell}</TableCell>
+                      <TableCell>{vehicle.chassis_nr}</TableCell>
+                      <TableCell>{vehicle.farbe || "-"}</TableCell>
+                      <TableCell>{vehicle.km_stand || "-"}</TableCell>
+                      <TableCell>{vehicle.verkaeufer || "-"}</TableCell>
+                      <TableCell>{vehicle.kundenberater || "-"}</TableCell>
+                      <TableCell>{getCustomerName(vehicle.customer_id)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          onClick={() => navigate(`/customers/${vehicle.customer_id}`)}
+                          size="sm"
+                          variant="outline"
+                          data-testid={`view-vehicle-customer-${vehicle.id}`}
+                        >
+                          Kunde
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
-        {filteredVehicles.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            <p className="text-lg">Keine Fahrzeuge gefunden</p>
-          </div>
-        )}
+            {filteredVehicles.length === 0 && (
+              <div className="text-center py-12 text-gray-500">
+                <p className="text-lg">Keine Fahrzeuge gefunden</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
