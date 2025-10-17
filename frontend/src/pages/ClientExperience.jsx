@@ -6,11 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Send, FileText } from "lucide-react";
+import { Plus, Send, FileText, CheckCircle, XCircle } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -19,9 +19,9 @@ export default function ClientExperience({ user, onLogout }) {
   const [cases, setCases] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [solutionDialogOpen, setSolutionDialogOpen] = useState(false);
+  const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState(null);
-  const [newSolution, setNewSolution] = useState("");
+  const [newAction, setNewAction] = useState("");
   const [manualCustomer, setManualCustomer] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -128,24 +128,40 @@ export default function ClientExperience({ user, onLogout }) {
     }
   };
 
-  const handleAddSolution = async () => {
-    if (!newSolution.trim()) return;
+  const handleAddAction = async () => {
+    if (!newAction.trim()) return;
     
     const token = localStorage.getItem("token");
     try {
       await axios.post(
-        `${API}/client-experience/${selectedCase.id}/solution`,
-        { text: newSolution },
+        `${API}/client-experience/${selectedCase.id}/action`,
+        { text: newAction },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success("Lösung hinzugefügt!");
-      setNewSolution("");
-      setSolutionDialogOpen(false);
+      toast.success("Aktion hinzugefügt!");
+      setNewAction("");
+      setActionDialogOpen(false);
       setSelectedCase(null);
       fetchCases();
     } catch (error) {
-      console.error("Error adding solution:", error);
-      toast.error("Fehler beim Hinzufügen der Lösung");
+      console.error("Error adding action:", error);
+      toast.error("Fehler beim Hinzufügen der Aktion");
+    }
+  };
+
+  const handleStatusChange = async (caseId, newStatus) => {
+    const token = localStorage.getItem("token");
+    try {
+      await axios.put(
+        `${API}/client-experience/${caseId}/status?status=${newStatus}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Status aktualisiert!");
+      fetchCases();
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Fehler beim Aktualisieren des Status");
     }
   };
 
@@ -317,7 +333,7 @@ export default function ClientExperience({ user, onLogout }) {
         <div className="grid grid-cols-1 gap-6">
           {sortedCases.map((ce) => (
             <Card key={ce.id} className="hover:shadow-lg transition-shadow duration-300" data-testid={`ce-case-${ce.id}`}>
-              <CardHeader className="bg-gradient-to-r from-red-500 to-pink-600 text-white">
+              <CardHeader className={`text-white ${ce.status === "offen" ? "bg-gradient-to-r from-red-500 to-pink-600" : "bg-gradient-to-r from-green-500 to-teal-600"}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <FileText className="w-6 h-6" />
@@ -327,6 +343,21 @@ export default function ClientExperience({ user, onLogout }) {
                         {ce.marke} {ce.modell} - {ce.datum} um {ce.zeit}
                       </p>
                     </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={ce.status === "offen" ? "destructive" : "default"} className="text-sm">
+                      {ce.status === "offen" ? "OFFEN" : "ERLEDIGT"}
+                    </Badge>
+                    {ce.status === "offen" && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleStatusChange(ce.id, "erledigt")}
+                        data-testid={`close-case-${ce.id}`}
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -353,29 +384,29 @@ export default function ClientExperience({ user, onLogout }) {
 
                   <div className="border-t pt-4 mt-4">
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold">Lösungen ({ce.loesungen?.length || 0})</h3>
+                      <h3 className="text-lg font-semibold">Aktionen ({ce.aktionen?.length || 0})</h3>
                       <Button
                         size="sm"
                         onClick={() => {
                           setSelectedCase(ce);
-                          setSolutionDialogOpen(true);
+                          setActionDialogOpen(true);
                         }}
-                        data-testid={`add-solution-${ce.id}`}
+                        data-testid={`add-action-${ce.id}`}
                       >
                         <Plus className="w-4 h-4 mr-1" />
-                        Lösung hinzufügen
+                        Aktion hinzufügen
                       </Button>
                     </div>
                     
-                    {!ce.loesungen || ce.loesungen.length === 0 ? (
-                      <p className="text-gray-500 text-sm">Noch keine Lösungen vorhanden</p>
+                    {!ce.aktionen || ce.aktionen.length === 0 ? (
+                      <p className="text-gray-500 text-sm">Noch keine Aktionen vorhanden</p>
                     ) : (
                       <div className="space-y-3">
-                        {[...ce.loesungen].reverse().map((solution, index) => (
-                          <div key={index} className="border-l-4 border-green-500 pl-4 py-2 bg-green-50">
-                            <p className="text-sm text-gray-700">{solution.text}</p>
+                        {[...ce.aktionen].reverse().map((action, index) => (
+                          <div key={index} className="border-l-4 border-blue-500 pl-4 py-2 bg-blue-50">
+                            <p className="text-sm text-gray-700">{action.text}</p>
                             <p className="text-xs text-gray-500 mt-1">
-                              {formatDateTime(solution.timestamp)} - {solution.user}
+                              {formatDateTime(action.timestamp)} - {action.user}
                             </p>
                           </div>
                         ))}
@@ -399,29 +430,29 @@ export default function ClientExperience({ user, onLogout }) {
         )}
       </div>
 
-      {/* Add Solution Dialog */}
-      <Dialog open={solutionDialogOpen} onOpenChange={setSolutionDialogOpen}>
+      {/* Add Action Dialog */}
+      <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Lösung hinzufügen</DialogTitle>
+            <DialogTitle>Aktion hinzufügen</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <Textarea
-              placeholder="Lösung eingeben..."
-              value={newSolution}
-              onChange={(e) => setNewSolution(e.target.value)}
+              placeholder="Beschreiben Sie die durchgeführte Aktion..."
+              value={newAction}
+              onChange={(e) => setNewAction(e.target.value)}
               rows={6}
-              data-testid="solution-input"
+              data-testid="action-input"
             />
             <div className="flex gap-2">
-              <Button onClick={handleAddSolution} className="flex-1" data-testid="solution-submit-button">
+              <Button onClick={handleAddAction} className="flex-1" data-testid="action-submit-button">
                 <Send className="w-4 h-4 mr-2" />
                 Hinzufügen
               </Button>
               <Button variant="outline" onClick={() => {
-                setSolutionDialogOpen(false);
+                setActionDialogOpen(false);
                 setSelectedCase(null);
-                setNewSolution("");
+                setNewAction("");
               }}>
                 Abbrechen
               </Button>
