@@ -99,6 +99,22 @@ class LoginResponse(BaseModel):
     token_type: str
     user: User
 
+class Remark(BaseModel):
+    text: str
+    timestamp: str
+    user: str
+
+class Correspondence(BaseModel):
+    bemerkung: str
+    datum: str
+    zeit: str
+    textfeld: str
+    upload1: Optional[str] = ""
+    upload2: Optional[str] = ""
+    upload3: Optional[str] = ""
+    timestamp: str
+    user: str
+
 class Customer(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -115,7 +131,8 @@ class Customer(BaseModel):
     email_p: Optional[str] = ""
     email_g: Optional[str] = ""
     geburtsdatum: Optional[str] = ""
-    bemerkungen: Optional[str] = ""
+    bemerkungen: List[dict] = Field(default_factory=list)
+    korrespondenz: List[dict] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CustomerCreate(BaseModel):
@@ -132,7 +149,18 @@ class CustomerCreate(BaseModel):
     email_p: Optional[str] = ""
     email_g: Optional[str] = ""
     geburtsdatum: Optional[str] = ""
-    bemerkungen: Optional[str] = ""
+
+class RemarkCreate(BaseModel):
+    text: str
+
+class CorrespondenceCreate(BaseModel):
+    bemerkung: str
+    datum: str
+    zeit: str
+    textfeld: str
+    upload1: Optional[str] = ""
+    upload2: Optional[str] = ""
+    upload3: Optional[str] = ""
 
 class Vehicle(BaseModel):
     model_config = ConfigDict(extra="ignore")
