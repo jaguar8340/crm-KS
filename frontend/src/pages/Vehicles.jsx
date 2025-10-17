@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Layout from "@/components/Layout";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, Car as CarIcon } from "lucide-react";
+import { Search, Car as CarIcon, Upload, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -16,6 +17,9 @@ export default function Vehicles({ user, onLogout }) {
   const [customers, setCustomers] = useState([]);
   const [filteredVehicles, setFilteredVehicles] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,13 +68,98 @@ export default function Vehicles({ user, onLogout }) {
     return customer ? `${customer.vorname} ${customer.name}` : "Unbekannt";
   };
 
+  const handleCSVUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    const token = localStorage.getItem("token");
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await axios.post(`${API}/vehicles/upload-csv`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      
+      toast.success(response.data.message);
+      if (response.data.errors && response.data.errors.length > 0) {
+        console.warn("Import errors:", response.data.errors);
+        toast.warning(`${response.data.errors.length} Fehler beim Import. Siehe Konsole für Details.`);
+      }
+      setUploadDialogOpen(false);
+      fetchVehicles();
+    } catch (error) {
+      console.error("Error uploading CSV:", error);
+      toast.error("Fehler beim Hochladen der CSV-Datei");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const downloadCSVTemplate = () => {
+    const headers = "kunden_nr,marke,modell,chassis_nr,stamm_nr,typenschein_nr,farbe,inverkehrsetzung,km_stand,vista_nr,verkaeufer,kundenberater\n";
+    const example = "K001,BMW,X5,WBAFR110000000000,S12345,T67890,Schwarz,2020-03-15,45000,V123,Peter Müller,Anna Schmidt\n";
+    const blob = new Blob([headers + example], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "fahrzeuge_vorlage.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <Layout user={user} onLogout={onLogout}>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center flex-wrap gap-4">
           <h1 className="text-4xl font-bold" style={{ fontFamily: 'Space Grotesk, sans-serif' }} data-testid="vehicles-title">
             Fahrzeuge
           </h1>
+          <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2" data-testid="upload-vehicles-csv-button">
+                <Upload className="w-4 h-4" />
+                CSV Hochladen
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Fahrzeuge CSV hochladen</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Laden Sie eine CSV-Datei mit Fahrzeugdaten hoch. Die CSV muss die Kundennummer (kunden_nr) enthalten,
+                  um das Fahrzeug dem richtigen Kunden zuzuordnen.
+                  <br /><br />
+                  Spalten: kunden_nr, marke, modell, chassis_nr, stamm_nr, typenschein_nr, farbe, inverkehrsetzung, km_stand, vista_nr, verkaeufer, kundenberater
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={downloadCSVTemplate}
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Vorlage herunterladen
+                </Button>
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={handleCSVUpload}
+                  disabled={uploading}
+                  data-testid="vehicles-csv-file-input"
+                />
+                {uploading && <p className="text-sm text-gray-600">Hochladen...</p>}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="relative">
