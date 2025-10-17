@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Plus, Search, Eye, Upload, Download } from "lucide-react";
+import { Plus, Search, Eye, Upload, Download, ArrowUpDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -18,6 +18,7 @@ export default function Customers({ user, onLogout }) {
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState("asc"); // asc or desc
   const [dialogOpen, setDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -36,7 +37,6 @@ export default function Customers({ user, onLogout }) {
     email_p: "",
     email_g: "",
     geburtsdatum: "",
-    bemerkungen: "",
   });
   const navigate = useNavigate();
 
@@ -45,15 +45,27 @@ export default function Customers({ user, onLogout }) {
   }, []);
 
   useEffect(() => {
-    const filtered = customers.filter(
+    let filtered = customers.filter(
       (customer) =>
         customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.vorname.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.kunden_nr.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (customer.firma && customer.firma.toLowerCase().includes(searchTerm.toLowerCase()))
     );
+    
+    // Sort by name
+    filtered = filtered.sort((a, b) => {
+      const nameA = a.name.toLowerCase();
+      const nameB = b.name.toLowerCase();
+      if (sortOrder === "asc") {
+        return nameA.localeCompare(nameB);
+      } else {
+        return nameB.localeCompare(nameA);
+      }
+    });
+    
     setFilteredCustomers(filtered);
-  }, [searchTerm, customers]);
+  }, [searchTerm, customers, sortOrder]);
 
   const fetchCustomers = async () => {
     const token = localStorage.getItem("token");
@@ -62,11 +74,23 @@ export default function Customers({ user, onLogout }) {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCustomers(response.data);
-      setFilteredCustomers(response.data);
     } catch (error) {
       console.error("Error fetching customers:", error);
       toast.error("Fehler beim Laden der Kunden");
     }
+  };
+
+  const toggleSortOrder = () => {
+    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
   };
 
   const handleSubmit = async (e) => {
@@ -93,7 +117,6 @@ export default function Customers({ user, onLogout }) {
         email_p: "",
         email_g: "",
         geburtsdatum: "",
-        bemerkungen: "",
       });
       fetchCustomers();
     } catch (error) {
@@ -138,8 +161,8 @@ export default function Customers({ user, onLogout }) {
   };
 
   const downloadCSVTemplate = () => {
-    const headers = "kunden_nr,vorname,name,firma,strasse,plz,ort,telefon_p,telefon_g,natel,email_p,email_g,geburtsdatum,bemerkungen\n";
-    const example = "K001,Max,Mustermann,Musterfirma GmbH,Musterstraße 1,8000,Zürich,+41 44 123 45 67,+41 44 987 65 43,+41 79 123 45 67,max@example.com,max.work@example.com,1980-05-15,Wichtiger Kunde\n";
+    const headers = "kunden_nr,vorname,name,firma,strasse,plz,ort,telefon_p,telefon_g,natel,email_p,email_g,geburtsdatum\n";
+    const example = "K001,Max,Mustermann,Musterfirma GmbH,Musterstraße 1,8000,Zürich,+41 44 123 45 67,+41 44 987 65 43,+41 79 123 45 67,max@example.com,max.work@example.com,1980-05-15\n";
     const blob = new Blob([headers + example], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -171,7 +194,7 @@ export default function Customers({ user, onLogout }) {
                 <div className="space-y-4">
                   <p className="text-sm text-gray-600">
                     Laden Sie eine CSV-Datei mit Kundendaten hoch. Die CSV muss folgende Spalten enthalten:
-                    kunden_nr, vorname, name, firma, strasse, plz, ort, telefon_p, telefon_g, natel, email_p, email_g, geburtsdatum, bemerkungen
+                    kunden_nr, vorname, name, firma, strasse, plz, ort, telefon_p, telefon_g, natel, email_p, email_g, geburtsdatum
                   </p>
                   <Button
                     variant="outline"
@@ -355,12 +378,22 @@ export default function Customers({ user, onLogout }) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Kunden-Nr</TableHead>
+                    <TableHead>
+                      <Button 
+                        variant="ghost" 
+                        onClick={toggleSortOrder}
+                        className="flex items-center gap-1 hover:bg-transparent p-0 h-auto font-semibold"
+                      >
+                        Name
+                        <ArrowUpDown className="w-4 h-4" />
+                      </Button>
+                    </TableHead>
                     <TableHead>Vorname</TableHead>
-                    <TableHead>Name</TableHead>
                     <TableHead>Firma</TableHead>
                     <TableHead>Ort</TableHead>
                     <TableHead>Telefon</TableHead>
                     <TableHead>Email</TableHead>
+                    <TableHead>Geburtsdatum</TableHead>
                     <TableHead className="text-right">Aktionen</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -368,12 +401,13 @@ export default function Customers({ user, onLogout }) {
                   {filteredCustomers.map((customer) => (
                     <TableRow key={customer.id} data-testid={`customer-row-${customer.id}`}>
                       <TableCell className="font-medium">{customer.kunden_nr}</TableCell>
-                      <TableCell>{customer.vorname}</TableCell>
                       <TableCell>{customer.name}</TableCell>
+                      <TableCell>{customer.vorname}</TableCell>
                       <TableCell>{customer.firma || "-"}</TableCell>
                       <TableCell>{customer.ort}</TableCell>
                       <TableCell>{customer.telefon_p || customer.telefon_g || customer.natel || "-"}</TableCell>
                       <TableCell>{customer.email_p || customer.email_g || "-"}</TableCell>
+                      <TableCell>{formatDate(customer.geburtsdatum)}</TableCell>
                       <TableCell className="text-right">
                         <Button
                           onClick={() => navigate(`/customers/${customer.id}`)}
