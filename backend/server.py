@@ -252,7 +252,7 @@ class TaskCreate(BaseModel):
 
 
 # Client Experience Models
-class Solution(BaseModel):
+class Action(BaseModel):
     text: str
     timestamp: str
     user: str
@@ -268,7 +268,8 @@ class ClientExperience(BaseModel):
     zeit: str
     kundenreklamation: str
     datei_upload: Optional[str] = ""
-    loesungen: List[dict] = Field(default_factory=list)
+    aktionen: List[dict] = Field(default_factory=list)
+    status: str = "offen"  # offen or erledigt
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_by: str
 
@@ -282,8 +283,74 @@ class ClientExperienceCreate(BaseModel):
     kundenreklamation: str
     datei_upload: Optional[str] = ""
 
-class SolutionCreate(BaseModel):
+class ActionCreate(BaseModel):
     text: str
+
+# Kaufverträge Models
+class Kaufvertrag(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    # Kundeninfo
+    kunde_name: str
+    kunde_vorname: str
+    kunde_plz: Optional[str] = ""
+    kunde_ort: Optional[str] = ""
+    kunde_telefon: Optional[str] = ""
+    kunde_email: Optional[str] = ""
+    # Fahrzeug
+    fahrzeug_marke: str
+    fahrzeug_modell: str
+    fahrzeug_chassis_nr: str
+    fahrzeug_stamm_nr: Optional[str] = ""
+    fahrzeug_farbe: Optional[str] = ""
+    fahrzeug_inverkehrsetzung: Optional[str] = ""
+    fahrzeug_typ: str  # Neuwagen, Vorführwagen, Occasion
+    verkaufspreis: str
+    # Eintauschwagen
+    eintausch_marke: Optional[str] = ""
+    eintausch_modell: Optional[str] = ""
+    eintausch_chassis_nr: Optional[str] = ""
+    eintausch_stamm_nr: Optional[str] = ""
+    eintausch_farbe: Optional[str] = ""
+    eintausch_inverkehrsetzung: Optional[str] = ""
+    eintausch_km_stand: Optional[str] = ""
+    eintausch_preis: Optional[str] = ""
+    eintausch_bemerkungen: Optional[str] = ""
+    eintausch_upload_ausweis: Optional[str] = ""
+    eintausch_upload_aussen: Optional[str] = ""
+    eintausch_upload_innen: Optional[str] = ""
+    eintausch_uploads: List[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_by: str
+
+class KaufvertragCreate(BaseModel):
+    kunde_name: str
+    kunde_vorname: str
+    kunde_plz: Optional[str] = ""
+    kunde_ort: Optional[str] = ""
+    kunde_telefon: Optional[str] = ""
+    kunde_email: Optional[str] = ""
+    fahrzeug_marke: str
+    fahrzeug_modell: str
+    fahrzeug_chassis_nr: str
+    fahrzeug_stamm_nr: Optional[str] = ""
+    fahrzeug_farbe: Optional[str] = ""
+    fahrzeug_inverkehrsetzung: Optional[str] = ""
+    fahrzeug_typ: str
+    verkaufspreis: str
+    eintausch_marke: Optional[str] = ""
+    eintausch_modell: Optional[str] = ""
+    eintausch_chassis_nr: Optional[str] = ""
+    eintausch_stamm_nr: Optional[str] = ""
+    eintausch_farbe: Optional[str] = ""
+    eintausch_inverkehrsetzung: Optional[str] = ""
+    eintausch_km_stand: Optional[str] = ""
+    eintausch_preis: Optional[str] = ""
+    eintausch_bemerkungen: Optional[str] = ""
+    eintausch_upload_ausweis: Optional[str] = ""
+    eintausch_upload_aussen: Optional[str] = ""
+    eintausch_upload_innen: Optional[str] = ""
+    eintausch_uploads: List[str] = Field(default_factory=list)
 
 # Routes
 @api_router.get("/")
