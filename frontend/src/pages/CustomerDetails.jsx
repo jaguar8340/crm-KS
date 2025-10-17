@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Send } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -20,8 +20,12 @@ export default function CustomerDetails({ user, onLogout }) {
   const navigate = useNavigate();
   const [customer, setCustomer] = useState(null);
   const [vehicles, setVehicles] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [remarkDialogOpen, setRemarkDialogOpen] = useState(false);
+  const [correspondenceDialogOpen, setCorrespondenceDialogOpen] = useState(false);
+  const [newRemark, setNewRemark] = useState("");
   const [vehicleFormData, setVehicleFormData] = useState({
     marke: "",
     modell: "",
@@ -36,11 +40,41 @@ export default function CustomerDetails({ user, onLogout }) {
     kundenberater: "",
   });
   const [editFormData, setEditFormData] = useState(null);
+  const [correspondenceFormData, setCorrespondenceFormData] = useState({
+    bemerkung: "",
+    datum: "",
+    zeit: "",
+    textfeld: "",
+    upload1: "",
+    upload2: "",
+    upload3: "",
+  });
 
   useEffect(() => {
     fetchCustomer();
     fetchVehicles();
+    fetchTasks();
   }, [id]);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  const formatDateTime = (isoString) => {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  };
 
   const fetchCustomer = async () => {
     const token = localStorage.getItem("token");
@@ -65,6 +99,20 @@ export default function CustomerDetails({ user, onLogout }) {
       setVehicles(response.data);
     } catch (error) {
       console.error("Error fetching vehicles:", error);
+    }
+  };
+
+  const fetchTasks = async () => {
+    const token = localStorage.getItem("token");
+    try {
+      const response = await axios.get(`${API}/tasks`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // Filter tasks for this customer
+      const customerTasks = response.data.filter(task => task.customer_id === id);
+      setTasks(customerTasks);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
     }
   };
 
@@ -117,6 +165,51 @@ export default function CustomerDetails({ user, onLogout }) {
     }
   };
 
+  const handleAddRemark = async () => {
+    if (!newRemark.trim()) return;
+    
+    const token = localStorage.getItem("token");
+    try {
+      await axios.post(`${API}/customers/${id}/remarks`, 
+        { text: newRemark },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Bemerkung hinzugefügt!");
+      setNewRemark("");
+      setRemarkDialogOpen(false);
+      fetchCustomer();
+    } catch (error) {
+      console.error("Error adding remark:", error);
+      toast.error("Fehler beim Hinzufügen der Bemerkung");
+    }
+  };
+
+  const handleAddCorrespondence = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem("token");
+
+    try {
+      await axios.post(`${API}/customers/${id}/correspondence`, correspondenceFormData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success("Korrespondenz hinzugefügt!");
+      setCorrespondenceDialogOpen(false);
+      setCorrespondenceFormData({
+        bemerkung: "",
+        datum: "",
+        zeit: "",
+        textfeld: "",
+        upload1: "",
+        upload2: "",
+        upload3: "",
+      });
+      fetchCustomer();
+    } catch (error) {
+      console.error("Error adding correspondence:", error);
+      toast.error("Fehler beim Hinzufügen der Korrespondenz");
+    }
+  };
+
   const handleDeleteVehicle = async (vehicleId) => {
     if (!window.confirm("Möchten Sie dieses Fahrzeug wirklich löschen?")) return;
 
@@ -154,7 +247,8 @@ export default function CustomerDetails({ user, onLogout }) {
           </h1>
         </div>
 
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left: Customer Data */}
           <Card>
             <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white flex flex-row justify-between items-center">
               <CardTitle>Kundendaten</CardTitle>
@@ -163,36 +257,27 @@ export default function CustomerDetails({ user, onLogout }) {
               </Button>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <div><strong>Kunden-Nr:</strong> {customer.kunden_nr}</div>
-                  <div><strong>Vorname:</strong> {customer.vorname}</div>
-                  <div><strong>Name:</strong> {customer.name}</div>
-                  {customer.firma && <div><strong>Firma:</strong> {customer.firma}</div>}
-                  {customer.geburtsdatum && <div><strong>Geburtsdatum:</strong> {customer.geburtsdatum}</div>}
+              <div className="space-y-3">
+                <div><strong>Kunden-Nr:</strong> {customer.kunden_nr}</div>
+                <div><strong>Vorname:</strong> {customer.vorname}</div>
+                <div><strong>Name:</strong> {customer.name}</div>
+                {customer.firma && <div><strong>Firma:</strong> {customer.firma}</div>}
+                {customer.geburtsdatum && <div><strong>Geburtsdatum:</strong> {formatDate(customer.geburtsdatum)}</div>}
+                <div className="pt-3 border-t">
+                  <strong>Adresse:</strong>
+                  <div>{customer.strasse}</div>
+                  <div>{customer.plz} {customer.ort}</div>
                 </div>
-                <div className="space-y-3">
-                  <div>
-                    <strong>Adresse:</strong>
-                    <div>{customer.strasse}</div>
-                    <div>{customer.plz} {customer.ort}</div>
-                  </div>
-                  {customer.telefon_p && <div><strong>Telefon P:</strong> {customer.telefon_p}</div>}
-                  {customer.telefon_g && <div><strong>Telefon G:</strong> {customer.telefon_g}</div>}
-                  {customer.natel && <div><strong>Natel:</strong> {customer.natel}</div>}
-                  {customer.email_p && <div><strong>Email P:</strong> {customer.email_p}</div>}
-                  {customer.email_g && <div><strong>Email G:</strong> {customer.email_g}</div>}
-                </div>
+                {customer.telefon_p && <div><strong>Telefon P:</strong> {customer.telefon_p}</div>}
+                {customer.telefon_g && <div><strong>Telefon G:</strong> {customer.telefon_g}</div>}
+                {customer.natel && <div><strong>Natel:</strong> {customer.natel}</div>}
+                {customer.email_p && <div><strong>Email P:</strong> {customer.email_p}</div>}
+                {customer.email_g && <div><strong>Email G:</strong> {customer.email_g}</div>}
               </div>
-              {customer.bemerkungen && (
-                <div className="mt-6 pt-6 border-t">
-                  <strong className="block mb-2">Bemerkungen:</strong>
-                  <p className="text-gray-700 whitespace-pre-wrap">{customer.bemerkungen}</p>
-                </div>
-              )}
             </CardContent>
           </Card>
 
+          {/* Right: Vehicles */}
           <Card>
             <CardHeader className="bg-gradient-to-r from-green-500 to-teal-600 text-white flex flex-row justify-between items-center">
               <CardTitle>Fahrzeuge ({vehicles.length})</CardTitle>
@@ -248,7 +333,228 @@ export default function CustomerDetails({ user, onLogout }) {
           </Card>
         </div>
 
-        {/* Add Vehicle Dialog */}
+        {/* Full Width Sections Below */}
+        <div className="grid grid-cols-1 gap-6">
+          {/* Remarks Section */}
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-amber-500 to-orange-600 text-white flex flex-row justify-between items-center">
+              <CardTitle>Bemerkungen ({customer.bemerkungen?.length || 0})</CardTitle>
+              <Button variant="secondary" size="sm" onClick={() => setRemarkDialogOpen(true)} data-testid="add-remark-button">
+                <Plus className="w-4 h-4 mr-1" />
+                Hinzufügen
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {!customer.bemerkungen || customer.bemerkungen.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">Keine Bemerkungen vorhanden</p>
+              ) : (
+                <div className="space-y-4">
+                  {customer.bemerkungen.map((remark, index) => (
+                    <div key={index} className="border-l-4 border-amber-500 pl-4 py-2 bg-gray-50">
+                      <p className="text-sm text-gray-700">{remark.text}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {formatDateTime(remark.timestamp)} - {remark.user}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Tasks Section */}
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-pink-500 to-rose-600 text-white">
+              <CardTitle>Aufgaben ({tasks.length})</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {tasks.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">Keine Aufgaben vorhanden</p>
+              ) : (
+                <Accordion type="single" collapsible className="w-full">
+                  {tasks.map((task, index) => (
+                    <AccordionItem key={task.id} value={`task-${index}`}>
+                      <AccordionTrigger className="hover:no-underline">
+                        <div className="flex items-center justify-between w-full pr-4">
+                          <span className="font-semibold">
+                            {task.datum_kontakt} - {task.status === "offen" ? "Offen" : "Erledigt"}
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-2 text-sm pt-2">
+                          <div><strong>Datum:</strong> {task.datum_kontakt} um {task.zeitpunkt_kontakt}</div>
+                          <div><strong>Telefon:</strong> {task.telefon_nummer}</div>
+                          <div><strong>Zugewiesen an:</strong> {task.assigned_to_name}</div>
+                          <div><strong>Bemerkungen:</strong> {task.bemerkungen}</div>
+                          <div><strong>Status:</strong> {task.status === "offen" ? "Offen" : "Erledigt"}</div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Correspondence Section */}
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white flex flex-row justify-between items-center">
+              <CardTitle>Korrespondenz ({customer.korrespondenz?.length || 0})</CardTitle>
+              <Button variant="secondary" size="sm" onClick={() => setCorrespondenceDialogOpen(true)} data-testid="add-correspondence-button">
+                <Plus className="w-4 h-4 mr-1" />
+                Hinzufügen
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {!customer.korrespondenz || customer.korrespondenz.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">Keine Korrespondenz vorhanden</p>
+              ) : (
+                <Accordion type="single" collapsible className="w-full">
+                  {customer.korrespondenz.map((korr, index) => (
+                    <AccordionItem key={index} value={`korr-${index}`}>
+                      <AccordionTrigger className="hover:no-underline">
+                        <div className="flex items-center justify-between w-full pr-4">
+                          <span className="font-semibold">
+                            {korr.datum} - {korr.bemerkung}
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-2 text-sm pt-2">
+                          <div><strong>Datum:</strong> {korr.datum} um {korr.zeit}</div>
+                          <div><strong>Bemerkung:</strong> {korr.bemerkung}</div>
+                          <div className="pt-2">
+                            <strong>Text:</strong>
+                            <p className="mt-1 whitespace-pre-wrap">{korr.textfeld}</p>
+                          </div>
+                          {korr.upload1 && <div><strong>Upload 1:</strong> {korr.upload1}</div>}
+                          {korr.upload2 && <div><strong>Upload 2:</strong> {korr.upload2}</div>}
+                          {korr.upload3 && <div><strong>Upload 3:</strong> {korr.upload3}</div>}
+                          <p className="text-xs text-gray-500 mt-2">
+                            Erstellt: {formatDateTime(korr.timestamp)} - {korr.user}
+                          </p>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Dialogs */}
+        {/* Add Remark Dialog */}
+        <Dialog open={remarkDialogOpen} onOpenChange={setRemarkDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Neue Bemerkung hinzufügen</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Textarea
+                placeholder="Bemerkung eingeben..."
+                value={newRemark}
+                onChange={(e) => setNewRemark(e.target.value)}
+                rows={4}
+                data-testid="remark-input"
+              />
+              <div className="flex gap-2">
+                <Button onClick={handleAddRemark} className="flex-1" data-testid="remark-submit-button">
+                  <Send className="w-4 h-4 mr-2" />
+                  Hinzufügen
+                </Button>
+                <Button variant="outline" onClick={() => setRemarkDialogOpen(false)}>Abbrechen</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Correspondence Dialog */}
+        <Dialog open={correspondenceDialogOpen} onOpenChange={setCorrespondenceDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Neue Korrespondenz erstellen</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleAddCorrespondence} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="bemerkung">Bemerkung*</Label>
+                  <Input
+                    id="bemerkung"
+                    value={correspondenceFormData.bemerkung}
+                    onChange={(e) => setCorrespondenceFormData({ ...correspondenceFormData, bemerkung: e.target.value })}
+                    required
+                    data-testid="correspondence-bemerkung-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="datum">Datum*</Label>
+                  <Input
+                    id="datum"
+                    type="date"
+                    value={correspondenceFormData.datum}
+                    onChange={(e) => setCorrespondenceFormData({ ...correspondenceFormData, datum: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="zeit">Zeit*</Label>
+                  <Input
+                    id="zeit"
+                    type="time"
+                    value={correspondenceFormData.zeit}
+                    onChange={(e) => setCorrespondenceFormData({ ...correspondenceFormData, zeit: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="textfeld">Textfeld*</Label>
+                <Textarea
+                  id="textfeld"
+                  value={correspondenceFormData.textfeld}
+                  onChange={(e) => setCorrespondenceFormData({ ...correspondenceFormData, textfeld: e.target.value })}
+                  rows={6}
+                  required
+                  data-testid="correspondence-textfeld-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="upload1">Upload 1 (URL)</Label>
+                <Input
+                  id="upload1"
+                  value={correspondenceFormData.upload1}
+                  onChange={(e) => setCorrespondenceFormData({ ...correspondenceFormData, upload1: e.target.value })}
+                  placeholder="URL zum Upload 1"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="upload2">Upload 2 (URL)</Label>
+                <Input
+                  id="upload2"
+                  value={correspondenceFormData.upload2}
+                  onChange={(e) => setCorrespondenceFormData({ ...correspondenceFormData, upload2: e.target.value })}
+                  placeholder="URL zum Upload 2"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="upload3">Upload 3 (URL)</Label>
+                <Input
+                  id="upload3"
+                  value={correspondenceFormData.upload3}
+                  onChange={(e) => setCorrespondenceFormData({ ...correspondenceFormData, upload3: e.target.value })}
+                  placeholder="URL zum Upload 3"
+                />
+              </div>
+              <Button type="submit" className="w-full" data-testid="correspondence-submit-button">
+                Korrespondenz hinzufügen
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Vehicle Dialog - keeping original */}
         <Dialog open={vehicleDialogOpen} onOpenChange={setVehicleDialogOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -466,15 +772,6 @@ export default function CustomerDetails({ user, onLogout }) {
                       type="date"
                       value={editFormData.geburtsdatum}
                       onChange={(e) => setEditFormData({ ...editFormData, geburtsdatum: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label>Bemerkungen</Label>
-                    <Textarea
-                      value={editFormData.bemerkungen || ""}
-                      onChange={(e) => setEditFormData({ ...editFormData, bemerkungen: e.target.value })}
-                      rows={4}
-                      placeholder="Notizen oder Bemerkungen zum Kunden..."
                     />
                   </div>
                 </div>
